@@ -2,7 +2,7 @@
 
 ## Rules
 
-1. When asked to commit, write a descriptive commit message explaining exactly what changed (e.g. `fix: patch auth vulnerability in middleware`), not a generic message.
+1. When asked to commit, write a descriptive commit message explaining exactly what changed (e.g. `fix: patch auth vulnerability in middleware`), not a generic message. Never commit without asking.
 2. Never modify the local git author configuration. Rely entirely on the existing local config (aryannaik225) — never add "Claude" or "AI" as a co-author or attribution line.
 3. Never run `git push`. Only run `git add` and `git commit`. The user reviews the log and pushes themselves.
 
@@ -171,11 +171,21 @@ Ran ingestion against the live Elexon API: 1,488 `FUELHH` rows (31 days × 48 se
 
 `tests/test_ingestion_sanity.py` checks the ingested (not mocked) DB: actuals' min/max `start_time` span the full delivery window with row count within 5% of the expected 1,488, forecasts' min/max `start_time` likewise span the window, and forecasts have strictly more total rows than distinct `start_time` values (confirming multiple revisions were captured, not just one row per period). All three pass against the live-ingested data. Added `pytest==9.2.0` to `requirements.txt` (no cp314 wheel for the originally-tried 8.3.3, same issue as the earlier pydantic pin note).
 
-### Phase 3 — Decision-time forecast & metrics logic
-- [ ] Implement `domain/decision_forecast.py`: given a delivery date and decision-cutoff, return the latest-as-of-cutoff forecast per settlement period.
-- [ ] (Optional) Unit test `decision_forecast.py` against a hand-constructed set of forecast revisions to confirm it picks the correct "as of" row, not just the latest overall.
-- [ ] Implement `domain/metrics.py`: MAE, RMSE, bias, nMAE, MAPE over a list of (forecast, actual) pairs.
-- [ ] (Optional) Unit test `metrics.py` against known numeric examples.
+### Phase 3 — Decision-time forecast & metrics logic (COMPLETED)
+- [x] Implement `domain/decision_forecast.py`: given a delivery date and decision-cutoff, return the latest-as-of-cutoff forecast per settlement period.
+- [x] (Optional) Unit test `decision_forecast.py` against a hand-constructed set of forecast revisions to confirm it picks the correct "as of" row, not just the latest overall.
+- [x] Implement `domain/metrics.py`: MAE, RMSE, bias, nMAE, MAPE over a list of (forecast, actual) pairs.
+- [x] (Optional) Unit test `metrics.py` against known numeric examples.
+
+**Implementation note:** `domain/decision_forecast.py` defines a `ForecastRevision` dataclass plus three functions: `decision_cutoff_utc(delivery_date)` converts the Phase 0 rule (11:00 UK local time on D-1) into a naive UTC `datetime` — matching how Elexon timestamps end up stored in SQLite, since SQLAlchemy's SQLite `DateTime` column silently drops `tzinfo` on write/read (confirmed by inspecting a stored row: a tz-aware UTC datetime came back naive). January and Feb 1 are both UK winter time (GMT = UTC+0), so this window needs no DST handling, but the conversion is done properly via `zoneinfo("Europe/London")` rather than hardcoded, in case the window ever shifts. `select_decision_time_forecast(revisions, cutoff_utc)` is the pure "as-of" selection: for each `start_time` it keeps only the revision with the max `publish_time` among those `<= cutoff_utc`, discarding any revision published after the cutoff even if it would otherwise be the latest for that period. `get_decision_time_forecast_for_day(db, delivery_date)` is the DB-facing wrapper that queries `ForecastGeneration` for the day's `start_time` range and calls the pure function.
+
+`domain/metrics.py` defines `compute_metrics(pairs)` over `(forecast, actual)` tuples, returning an `ErrorMetrics` dataclass with `mae`, `rmse`, `bias` (mean signed error, `forecast - actual`), `n_mae` (MAE / mean(actual), `None` if mean(actual) is 0), `mape` (secondary metric, computed only over pairs with nonzero actual, `None` if none exist), and `count`.
+
+Added `tzdata==2025.2` to `requirements.txt` — Windows has no system IANA tzdata, so `zoneinfo.ZoneInfo("Europe/London")` raised `ZoneInfoNotFoundError` without it.
+
+`tests/test_decision_forecast.py` (5 tests) and `tests/test_metrics.py` (4 tests) cover: cutoff math, picking the correct as-of revision vs. the latest-overall one, exact-cutoff-timestamp inclusion, a settlement period with no pre-cutoff revision being omitted (not defaulted to 0), independent per-period resolution, a hand-computed numeric example for all four metrics, the empty-input case, the zero-mean-actual case (nMAE/MAPE should be `None`, not a div-by-zero), and the perfect-forecast case. All 12 tests in the suite (these plus the existing Phase 2 ingestion sanity tests) pass.
+
+**Data-shape finding surfaced while sanity-checking against the live-ingested DB (relevant to Phase 4):** WINDFOR is natively **hourly** (`start_time` only ever lands on the hour), while FUELHH/actuals are half-hourly. Running `get_decision_time_forecast_for_day` against real data for Jan 15, 2026 returned exactly 24 of 48 settlement periods — the 24 `:30` periods have zero WINDFOR rows at all (confirmed directly against the table, not a cutoff artifact). The decision-time selection logic is correct as-is (it faithfully returns only what the API provides), but the Phase 4 `series` endpoint will need an explicit, documented choice for pairing a half-hourly actual against an hourly forecast — e.g. forward-filling the hourly forecast value onto the following `:30` period, or only pairing on the hours that exist and flagging the `:30` periods as no-forecast-available. Not resolved in this phase; flagging so it isn't lost.
 
 ### Phase 4 — API endpoints
 - [ ] Implement `GET /api/days` listing in-scope delivery days with data-availability flags.
