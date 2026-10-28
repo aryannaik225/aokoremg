@@ -28,7 +28,7 @@ export function Hero({ children }: HeroProps) {
         </div>
 
         <div
-          className="bg-white/50 dark:bg-[#141415]/50 border border-[#e4e8f0] dark:border-[#000000]/10 backdrop-blur-2xl hidden items-center gap-4 rounded-full px-5 py-2 text-[13px] font-medium sm:flex"
+          className="bg-white/50 dark:bg-[#141415]/50 border border-[#e4e8f0] dark:border-[#000000]/10 backdrop-blur-2xl hidden items-center gap-4 rounded-full px-5 py-2 text-[13px] font-medium transition-colors duration-300 sm:flex"
           // style={{ color: "var(--color-text-secondary)" }}
         >
           <Leaf className="h-6 w-6 text-emerald-500" />

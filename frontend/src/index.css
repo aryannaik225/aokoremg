@@ -99,10 +99,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-}
-
-* {
-  transition-property: background-color, border-color, color, box-shadow;
+  transition-property: background-color, color;
   transition-duration: 300ms;
   transition-timing-function: ease;
 }
@@ -111,6 +108,9 @@ body {
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
   box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.04), 0 12px 32px -20px rgba(15, 23, 42, 0.12);
+  transition-property: background-color, border-color, box-shadow;
+  transition-duration: 300ms;
+  transition-timing-function: ease;
 }
 
 .dark .surface-panel {
