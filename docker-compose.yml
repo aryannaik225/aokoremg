@@ -10,6 +10,9 @@ services:
       DELIVERY_WINDOW_START: "2026-01-02"
       DELIVERY_WINDOW_END: "2026-02-01"
       DB_PATH: /app/data/gridbricks.db
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     volumes:
       - sqlite-data:/app/data
     healthcheck:
