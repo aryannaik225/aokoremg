@@ -1,10 +1,11 @@
 # GridBricks Assignment — Wind Forecast Accuracy Portal
 
-## Rules
+## Important GitHub Rules
 
 1. When asked to commit, write a descriptive commit message explaining exactly what changed (e.g. `fix: patch auth vulnerability in middleware`), not a generic message. Never commit without asking.
-2. Never modify the local git author configuration. Rely entirely on the existing local config (aryannaik225) — never add "Claude" or "AI" as a co-author or attribution line.
-3. Never run `git push`. Only run `git add` and `git commit`. The user reviews the log and pushes themselves.
+2. Never modify the local git author configuration. Rely entirely on the existing local config (aryannaik225) — 
+3. Never add "Claude" or "AI" as a co-author or attribution line.
+4. Never run `git push`. Only run `git add` and `git commit`. The user reviews the log and pushes themselves.
 
 ## 1. Project Overview
 
@@ -187,11 +188,20 @@ Added `tzdata==2025.2` to `requirements.txt` — Windows has no system IANA tzda
 
 **Data-shape finding surfaced while sanity-checking against the live-ingested DB (relevant to Phase 4):** WINDFOR is natively **hourly** (`start_time` only ever lands on the hour), while FUELHH/actuals are half-hourly. Running `get_decision_time_forecast_for_day` against real data for Jan 15, 2026 returned exactly 24 of 48 settlement periods — the 24 `:30` periods have zero WINDFOR rows at all (confirmed directly against the table, not a cutoff artifact). The decision-time selection logic is correct as-is (it faithfully returns only what the API provides), but the Phase 4 `series` endpoint will need an explicit, documented choice for pairing a half-hourly actual against an hourly forecast — e.g. forward-filling the hourly forecast value onto the following `:30` period, or only pairing on the hours that exist and flagging the `:30` periods as no-forecast-available. Not resolved in this phase; flagging so it isn't lost.
 
-### Phase 4 — API endpoints
-- [ ] Implement `GET /api/days` listing in-scope delivery days with data-availability flags.
-- [ ] Implement `GET /api/days/{date}/series` returning per-settlement-period forecast, actual, and error for one delivery day.
-- [ ] Implement `GET /api/metrics` returning aggregated error metrics over a date range (default full Jan 2026 decision window).
-- [ ] (Optional) Add integration tests hitting these endpoints against the seeded SQLite data.
+### Phase 4 — API endpoints (COMPLETED)
+- [x] Implement `GET /api/days` listing in-scope delivery days with data-availability flags.
+- [x] Implement `GET /api/days/{date}/series` returning per-settlement-period forecast, actual, and error for one delivery day.
+- [x] Implement `GET /api/metrics` returning aggregated error metrics over a date range (default full Jan 2026 decision window).
+- [x] (Optional) Add integration tests hitting these endpoints against the seeded SQLite data.
+
+**Implementation note:** Resolved the Phase 3 half-hourly-actuals-vs-hourly-forecast gap first, in a new `domain/series.py`: `build_day_series(db, delivery_date)` returns all 48 settlement periods for a day (not just the ones with data), pairing each period's actual with the decision-time forecast **forward-filled from the preceding on-the-hour WINDFOR value** (e.g. the `HH:30` period gets the same decision-time forecast as `HH:00`) — documented as the explicit, deliberate choice flagged as unresolved at the end of Phase 3. Periods missing an actual and/or a pre-cutoff forecast come back with `null`/`None` rather than being silently dropped or zero-filled, so gaps stay visible to API consumers.
+
+Three routers were added under `api/`, each a thin wrapper over the domain layer, and registered in `main.py`:
+- `routes_days.py` — `GET /api/days` iterates the configured delivery window (`settings.delivery_window_start`..`end`) and reports `actual_periods_available`, `forecast_periods_available` (counted against the decision-time selection, so it reflects what the buying team could actually see — expect 24/48 since WINDFOR is hourly), and boolean `has_complete_actuals` / `has_any_forecast` flags per day.
+- `routes_series.py` — `GET /api/days/{date}/series` calls `build_day_series` directly and returns the 48 `{start_time, forecast, actual, error}` rows; returns `400` for any `date` outside the in-scope delivery window (checked against `settings.delivery_window_start/end`) rather than silently returning empty data.
+- `routes_metrics.py` — `GET /api/metrics?from=&to=` defaults both bounds to the full delivery window when omitted, `400`s if `from > to` or if either bound falls outside the in-scope window (keeps the endpoint from silently aggregating over out-of-scope / no-data dates), and for each day in range calls `build_day_series` + `domain/metrics.compute_metrics` over the periods where both forecast and actual exist, returning both a `daily` breakdown and one `aggregate` across the full queried range.
+
+`tests/test_api_endpoints.py` (6 new tests, using FastAPI's `TestClient` against the live-ingested DB — no mocking, consistent with the Phase 2 sanity tests) covers: `/api/days` returns exactly the 31 expected dates with complete data; `/api/days/{date}/series` returns 48 periods per day with every `:30` period's forecast equal to its preceding `:00` period's forecast (verifying the forward-fill); an out-of-scope date on `/series` returns `400`; `/api/metrics` with no params matches the full window and its daily breakdown has one entry per day; an out-of-scope metrics range returns `400`; and a single-day metrics range returns exactly one daily entry. All 18 tests in the suite (12 from Phases 2-3 plus these 6) pass. Manually smoke-tested all three endpoints against the real ingested data with `uvicorn` running locally — e.g. `/api/metrics` over the full window returns `nMAE ≈ 0.179` (MAE ≈ 2016 MW against mean actual generation), confirming the pipeline produces sane, non-degenerate numbers end-to-end.
 
 ### Phase 5 — Frontend scaffolding
 - [ ] Initialize `frontend/` Next.js and Tailwind CSS, basic routing-free single-page structure.
