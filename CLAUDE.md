@@ -156,12 +156,20 @@ Routers for `/api/days`, `/api/days/{date}/series`, and `/api/metrics` are delib
 
 Note: the local Python interpreter is 3.14, which has no prebuilt wheels for the `pydantic==2.9.2` / `pydantic-settings==2.5.2` versions originally listed as examples — pinned `requirements.txt` to `pydantic==2.14.1` / `pydantic-settings==2.11.0` instead (first versions with cp314 wheels); all other pins are unchanged. Verified: `pip install -r requirements.txt` installs cleanly in a venv, `uvicorn app.main:app` starts, `GET /api/health` returns `{"status":"ok"}`, and the SQLite file at `backend/data/gridbricks.db` is created on startup with both `actual_generation` and `forecast_generation` tables.
 
-### Phase 2 — Elexon ingestion
-- [ ] Implement `elexon/client.py` with functions to fetch `FUELHH` (filtered to `fuelType=WIND`) and `WINDFOR` for a given date range.
-- [ ] Implement Pydantic schemas validating raw Elexon response shape.
-- [ ] Implement `ingestion/ingest.py` to fetch Jan 2 – Feb 1, 2026 actuals and all relevant `WINDFOR` revisions, and upsert into SQLite (idempotent — safe to re-run).
-- [ ] Add a CLI entrypoint or startup hook to trigger ingestion, plus basic logging of rows fetched/inserted.
-- [ ] Write a quick sanity script/test confirming actuals and forecasts both cover the expected delivery-day range with no major gaps.
+### Phase 2 — Elexon ingestion (COMPLETED)
+- [x] Implement `elexon/client.py` with functions to fetch `FUELHH` (filtered to `fuelType=WIND`) and `WINDFOR` for a given date range.
+- [x] Implement Pydantic schemas validating raw Elexon response shape.
+- [x] Implement `ingestion/ingest.py` to fetch Jan 2 – Feb 1, 2026 actuals and all relevant `WINDFOR` revisions, and upsert into SQLite (idempotent — safe to re-run).
+- [x] Add a CLI entrypoint or startup hook to trigger ingestion, plus basic logging of rows fetched/inserted.
+- [x] Write a quick sanity script/test confirming actuals and forecasts both cover the expected delivery-day range with no major gaps.
+
+**Implementation note:** `elexon/schemas.py` defines `FuelHHRecord` and `WindForRecord` Pydantic models matching the confirmed Phase 0 response shapes. `elexon/client.py` has two thin `httpx`-based functions, `fetch_fuelhh_wind(date_from, date_to)` and `fetch_windfor(publish_from, publish_to)`, each hitting the `/stream` endpoint and validating the JSON array response with a `TypeAdapter`.
+
+`ingestion/ingest.py` fetches `FUELHH` directly over the delivery window (`settlementDateFrom/To` = Jan 2–Feb 1, 2026), and fetches `WINDFOR` over a wider `publishDateTimeFrom/To` range — 14 days before the delivery window start through 1 day after its end — since forecasts for in-scope delivery days can be published well before January. The fetched `WINDFOR` rows are then filtered in Python to only those whose `startTime` falls within the delivery window before upserting, per the CLAUDE.md note that the API filters by publish time, not start time. Both upserts use SQLite's `INSERT ... ON CONFLICT DO UPDATE` (via `sqlalchemy.dialects.sqlite.insert`) keyed on each table's primary key, making re-runs idempotent, and are batched in chunks of 200 rows to stay under SQLite's default 999-bound-parameter limit (hit this directly on the first real run with ~18k forecast rows). `run_ingestion()` is exposed both as `python -m app.ingestion.ingest` (CLI entrypoint) and importable for a future startup hook; it logs rows fetched vs. upserted for each dataset.
+
+Ran ingestion against the live Elexon API: 1,488 `FUELHH` rows (31 days × 48 settlement periods) and 18,080 in-window `WINDFOR` rows (out of 26,280 fetched across the wider publish-time lookback) were upserted into `backend/data/gridbricks.db`.
+
+`tests/test_ingestion_sanity.py` checks the ingested (not mocked) DB: actuals' min/max `start_time` span the full delivery window with row count within 5% of the expected 1,488, forecasts' min/max `start_time` likewise span the window, and forecasts have strictly more total rows than distinct `start_time` values (confirming multiple revisions were captured, not just one row per period). All three pass against the live-ingested data. Added `pytest==9.2.0` to `requirements.txt` (no cp314 wheel for the originally-tried 8.3.3, same issue as the earlier pydantic pin note).
 
 ### Phase 3 — Decision-time forecast & metrics logic
 - [ ] Implement `domain/decision_forecast.py`: given a delivery date and decision-cutoff, return the latest-as-of-cutoff forecast per settlement period.
