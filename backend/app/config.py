@@ -24,7 +24,5 @@ class Settings(BaseSettings):
 
     db_path: str = "./data/gridbricks.db"
 
-    frontend_origin: str = "http://localhost:5173"
-
 
 settings = Settings()

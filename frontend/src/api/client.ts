@@ -1,4 +1,23 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+declare global {
+  interface Window {
+    __API_BASE_URL__?: string;
+  }
+}
+
+// window.__API_BASE_URL__ is injected at container startup (see
+// frontend/docker-entrypoint.sh) so the backend URL can differ per
+// environment without a rebuild — e.g. a GitHub Codespaces forwarded-port
+// URL, which isn't known until the container actually starts. The
+// placeholder value is never left in place by a real deployment.
+const runtimeApiBaseUrl =
+  typeof window !== "undefined" &&
+  window.__API_BASE_URL__ &&
+  window.__API_BASE_URL__ !== "__RUNTIME_API_BASE_URL__"
+    ? window.__API_BASE_URL__
+    : undefined;
+
+const API_BASE_URL =
+  runtimeApiBaseUrl ?? import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 
 export interface DaySummary {
   date: string;

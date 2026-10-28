@@ -18,8 +18,9 @@ FROM node:20-slim
 
 WORKDIR /app
 COPY --from=build /app/dist ./dist
-RUN npm install -g serve@14
+COPY docker-entrypoint.sh .
+RUN npm install -g serve@14 && chmod +x docker-entrypoint.sh
 
 EXPOSE 4173
 
-CMD ["serve", "-s", "dist", "-l", "4173"]
+ENTRYPOINT ["./docker-entrypoint.sh"]

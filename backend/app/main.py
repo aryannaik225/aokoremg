@@ -4,7 +4,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes_days import router as days_router
 from app.api.routes_metrics import router as metrics_router
 from app.api.routes_series import router as series_router
-from app.config import settings
 from app.db.session import init_db
 
 app = FastAPI(title="GridBricks Wind Forecast Accuracy Portal")
@@ -15,8 +14,8 @@ app.include_router(metrics_router)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.frontend_origin],
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
