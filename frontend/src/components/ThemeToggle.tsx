@@ -12,26 +12,21 @@ export function ThemeToggle({ theme, onToggle }: ThemeToggleProps) {
   return (
     <button
       type="button"
-      role="switch"
-      aria-checked={isDark}
+      aria-pressed={isDark}
       aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
       onClick={onToggle}
-      className="relative flex h-8 w-16 items-center rounded-full border px-1 transition-colors duration-300"
+      className="flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur-md transition-colors duration-300 hover:border-white/30 cursor-pointer"
       style={{
-        backgroundColor: isDark ? "var(--color-sidebar-active)" : "#eff6ff",
+        backgroundColor: isDark ? "rgba(15, 25, 46, 0.55)" : "rgba(255, 255, 255, 0.55)",
         borderColor: "var(--color-border)",
+        boxShadow: "0 4px 16px -4px rgba(15, 23, 42, 0.25)",
       }}
     >
-      <span
-        className="flex h-6 w-6 items-center justify-center rounded-full bg-white shadow transition-transform duration-300 dark:bg-[#1c2a47]"
-        style={{ transform: isDark ? "translateX(32px)" : "translateX(0px)" }}
-      >
-        {isDark ? (
-          <Moon className="h-3.5 w-3.5 text-blue-300" />
-        ) : (
-          <Sun className="h-3.5 w-3.5 text-amber-500" />
-        )}
-      </span>
+      {isDark ? (
+        <Moon className="h-5 w-5 text-blue-200" />
+      ) : (
+        <Sun className="h-5 w-5 text-amber-500" />
+      )}
     </button>
   );
 }

@@ -9,11 +9,13 @@ import {
   type MetricsResponse,
 } from "../api/client";
 import { DayPicker } from "../components/DayPicker";
-import { ForecastActualChart } from "../components/ForecastActualChart";
+import { ChartLegend, ForecastActualChart } from "../components/ForecastActualChart";
 import { Hero } from "../components/Hero";
+import { HeroBackdrop } from "../components/HeroBackdrop";
 import { KeyInsights } from "../components/KeyInsights";
 import { MetricsSummary } from "../components/MetricsSummary";
 import { Sidebar } from "../components/Sidebar";
+import { ThemeToggle } from "../components/ThemeToggle";
 import type { Theme } from "../hooks/useTheme";
 
 const container = {
@@ -72,11 +74,17 @@ export function Dashboard({ theme, onToggleTheme }: DashboardProps) {
 
   return (
     <div className="flex min-h-screen transition-colors duration-300" style={{ backgroundColor: "var(--color-bg)" }}>
-      <Sidebar theme={theme} onToggleTheme={onToggleTheme} />
+      <div className="fixed right-4 top-4 z-50 sm:right-6 sm:top-6">
+        <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+      </div>
 
-      <div className="min-w-0 flex-1">
+      <Sidebar />
+
+      <div className="relative min-w-0 flex-1">
+        <HeroBackdrop />
+
         <motion.div
-          className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8"
+          className="relative z-10 mx-auto max-w-full px-4 py-6 sm:px-6 sm:py-8"
           variants={container}
           initial="hidden"
           animate="show"
@@ -100,17 +108,20 @@ export function Dashboard({ theme, onToggleTheme }: DashboardProps) {
             </Hero>
           </motion.div>
 
-          <motion.div variants={item} className="surface-panel mt-6 rounded-3xl p-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold tracking-tight" style={{ color: "var(--color-text-primary)" }}>
-                Forecast vs. actual — {selectedDate ?? "—"}
+          <motion.div variants={item} className="surface-panel mt-4 rounded-3xl p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-lg font-medium tracking-wide" style={{ color: "var(--color-text-primary)" }}>
+                Forecast vs. Actual — {selectedDate ?? "—"}
               </h2>
-              <span
-                className="rounded-full border px-3 py-1 text-[11px]"
-                style={{ borderColor: "var(--color-border)", color: "var(--color-text-muted)" }}
-              >
-                Half-hourly
-              </span>
+              <div className="flex items-center gap-3">
+                {series && series.periods.some((p) => p.forecast !== null || p.actual !== null) && <ChartLegend />}
+                <span
+                  className="rounded-full border px-3 py-1 text-[11px]"
+                  style={{ borderColor: "var(--color-border)", color: "var(--color-text-muted)" }}
+                >
+                  Half-hourly
+                </span>
+              </div>
             </div>
             {seriesError && <p className="mt-3 text-sm text-red-500">Failed to load series: {seriesError}</p>}
             {!seriesError && selectedDate && !series && (

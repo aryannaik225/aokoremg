@@ -31,6 +31,13 @@
     rgba(244, 247, 251, 0.55) 72%,
     var(--color-bg) 100%
   );
+  --hero-overlay-left: linear-gradient(
+    90deg,
+    var(--color-bg) 0%,
+    rgba(244, 247, 251, 0.75) 28%,
+    rgba(244, 247, 251, 0.3) 45%,
+    rgba(244, 247, 251, 0) 68%
+  );
   --hero-sky: linear-gradient(180deg, #bfe3ff 0%, #e4f2ff 55%, #f6fbff 100%);
 }
 
@@ -67,6 +74,13 @@
     rgba(5, 10, 24, 0.25) 0%,
     rgba(5, 10, 20, 0.82) 72%,
     var(--color-bg) 100%
+  );
+  --hero-overlay-left: linear-gradient(
+    90deg,
+    var(--color-bg) 0%,
+    rgba(5, 10, 20, 0.8) 22%,
+    rgba(5, 10, 20, 0.35) 45%,
+    rgba(5, 10, 20, 0) 68%
   );
   --hero-sky: linear-gradient(180deg, #0b1229 0%, #141b3a 45%, #2b2550 100%);
 }
@@ -121,6 +135,10 @@ body {
 
 .hero-overlay {
   background: var(--hero-overlay);
+}
+
+.hero-overlay-left {
+  background: var(--hero-overlay-left);
 }
 
 ::-webkit-scrollbar {

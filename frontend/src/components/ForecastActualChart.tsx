@@ -55,6 +55,27 @@ function CustomTooltip({
   );
 }
 
+export function ChartLegend() {
+  return (
+    <div className="flex items-center gap-5 text-xs">
+      <span className="flex items-center gap-2" style={{ color: "var(--color-text-secondary)" }}>
+        <span
+          className="inline-block h-2.5 w-2.5 rounded-full"
+          style={{ background: "var(--color-forecast)", boxShadow: "0 0 6px var(--color-forecast)" }}
+        />
+        Decision-time forecast
+      </span>
+      <span className="flex items-center gap-2" style={{ color: "var(--color-text-secondary)" }}>
+        <span
+          className="inline-block h-2.5 w-2.5 rounded-full"
+          style={{ background: "var(--color-actual)", boxShadow: "0 0 6px var(--color-actual)" }}
+        />
+        Actual generation
+      </span>
+    </div>
+  );
+}
+
 export function ForecastActualChart({ periods }: ForecastActualChartProps) {
   const data = periods.map((p) => ({
     time: formatTime(p.start_time),
@@ -64,30 +85,8 @@ export function ForecastActualChart({ periods }: ForecastActualChartProps) {
 
   return (
     <div>
-      <div className="mb-4 flex items-center gap-5 text-xs">
-        <span
-          className="surface-panel flex items-center gap-2 rounded-full px-3 py-1.5"
-          style={{ color: "var(--color-text-secondary)" }}
-        >
-          <span
-            className="inline-block h-2.5 w-2.5 rounded-full"
-            style={{ background: "var(--color-forecast)", boxShadow: "0 0 6px var(--color-forecast)" }}
-          />
-          Decision-time forecast
-        </span>
-        <span
-          className="surface-panel flex items-center gap-2 rounded-full px-3 py-1.5"
-          style={{ color: "var(--color-text-secondary)" }}
-        >
-          <span
-            className="inline-block h-2.5 w-2.5 rounded-full"
-            style={{ background: "var(--color-actual)", boxShadow: "0 0 6px var(--color-actual)" }}
-          />
-          Actual generation
-        </span>
-      </div>
-      <ResponsiveContainer width="100%" height={360}>
-        <AreaChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+      <ResponsiveContainer width="100%" height={260}>
+        <AreaChart data={data} margin={{ top: 8, right: 16, left: 16, bottom: 32 }}>
           <defs>
             <linearGradient id="forecastFill" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="var(--color-forecast-fill-from)" />
@@ -105,12 +104,28 @@ export function ForecastActualChart({ periods }: ForecastActualChartProps) {
             tick={{ fill: "var(--color-text-muted)", fontSize: 11 }}
             axisLine={false}
             tickLine={false}
+            label={{
+              value: "Settlement time",
+              position: "insideBottom",
+              offset: -24,
+              fill: "var(--color-text-muted)",
+              fontSize: 11,
+            }}
           />
           <YAxis
             tick={{ fill: "var(--color-text-muted)", fontSize: 11 }}
             axisLine={false}
             tickLine={false}
-            width={48}
+            width={56}
+            label={{
+              value: "Generation (MW)",
+              angle: -90,
+              position: "insideLeft",
+              dx: -12,
+              style: { textAnchor: "middle" },
+              fill: "var(--color-text-muted)",
+              fontSize: 11,
+            }}
           />
           <Tooltip content={<CustomTooltip />} cursor={{ stroke: "var(--color-grid-line)", strokeWidth: 1 }} />
           <Area

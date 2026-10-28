@@ -1,28 +1,12 @@
 import {
-  Download,
-  Gauge,
+  Fan,
   LayoutDashboard,
-  LineChart,
-  Sparkles,
-  Wind,
 } from "lucide-react";
-import type { Theme } from "../hooks/useTheme";
-import { ThemeToggle } from "./ThemeToggle";
-
 const NAV_ITEMS = [
-  { label: "Overview", icon: LayoutDashboard, active: true },
-  { label: "Forecast vs Actual", icon: LineChart, active: false },
-  { label: "Daily Analysis", icon: Gauge, active: false },
-  { label: "Metrics", icon: Sparkles, active: false },
-  { label: "Data Export", icon: Download, active: false },
+  { label: "Overview", icon: LayoutDashboard, active: true }
 ];
 
-interface SidebarProps {
-  theme: Theme;
-  onToggleTheme: () => void;
-}
-
-export function Sidebar({ theme, onToggleTheme }: SidebarProps) {
+export function Sidebar() {
   return (
     <aside
       className="hidden w-64 shrink-0 flex-col justify-between border-r px-4 py-6 transition-colors duration-300 lg:flex"
@@ -31,7 +15,7 @@ export function Sidebar({ theme, onToggleTheme }: SidebarProps) {
       <div>
         <div className="flex items-center gap-2.5 px-2">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white">
-            <Wind className="h-5 w-5" />
+            <Fan className="h-5 w-5" />
           </span>
           <div>
             <div className="text-sm font-semibold tracking-tight" style={{ color: "var(--color-text-primary)" }}>
@@ -43,7 +27,9 @@ export function Sidebar({ theme, onToggleTheme }: SidebarProps) {
           </div>
         </div>
 
-        <nav className="mt-8 flex flex-col gap-1">
+        <div className="mt-6 h-px" style={{ backgroundColor: "var(--color-border)" }} />
+
+        <nav className="mt-6 flex flex-col gap-1">
           {NAV_ITEMS.map(({ label, icon: Icon, active }) => (
             <button
               key={label}
@@ -65,26 +51,18 @@ export function Sidebar({ theme, onToggleTheme }: SidebarProps) {
         </nav>
       </div>
 
-      <div className="flex flex-col gap-4">
-        <div
-          className="rounded-2xl border p-4"
-          style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-sidebar-active)" }}
-        >
-          <div className="text-xs font-semibold" style={{ color: "var(--color-text-primary)" }}>
-            Clean Energy
-          </div>
-          <div className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
-            Better Decisions
-          </div>
-          <div className="mt-2 text-[11px]" style={{ color: "var(--color-text-muted)" }}>
-            Jan 2 – Feb 1, 2026
-          </div>
+      <div
+        className="rounded-2xl border p-4"
+        style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-sidebar-active)" }}
+      >
+        <div className="text-xs font-semibold" style={{ color: "var(--color-text-primary)" }}>
+          Clean Energy
         </div>
-        <div className="flex items-center justify-between px-1">
-          <span className="text-xs font-medium" style={{ color: "var(--color-text-secondary)" }}>
-            {theme === "dark" ? "Dark mode" : "Light mode"}
-          </span>
-          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+        <div className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
+          Better Decisions
+        </div>
+        <div className="mt-2 text-[11px]" style={{ color: "var(--color-text-muted)" }}>
+          Jan 2 – Feb 1, 2026
         </div>
       </div>
     </aside>
