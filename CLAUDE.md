@@ -203,10 +203,22 @@ Three routers were added under `api/`, each a thin wrapper over the domain layer
 
 `tests/test_api_endpoints.py` (6 new tests, using FastAPI's `TestClient` against the live-ingested DB — no mocking, consistent with the Phase 2 sanity tests) covers: `/api/days` returns exactly the 31 expected dates with complete data; `/api/days/{date}/series` returns 48 periods per day with every `:30` period's forecast equal to its preceding `:00` period's forecast (verifying the forward-fill); an out-of-scope date on `/series` returns `400`; `/api/metrics` with no params matches the full window and its daily breakdown has one entry per day; an out-of-scope metrics range returns `400`; and a single-day metrics range returns exactly one daily entry. All 18 tests in the suite (12 from Phases 2-3 plus these 6) pass. Manually smoke-tested all three endpoints against the real ingested data with `uvicorn` running locally — e.g. `/api/metrics` over the full window returns `nMAE ≈ 0.179` (MAE ≈ 2016 MW against mean actual generation), confirming the pipeline produces sane, non-degenerate numbers end-to-end.
 
-### Phase 5 — Frontend scaffolding
-- [ ] Initialize `frontend/` Next.js and Tailwind CSS, basic routing-free single-page structure.
-- [ ] Implement `api/client.ts` wrapping the three backend endpoints.
-- [ ] Build `DayPicker.tsx` constrained to the Jan 2 – Feb 1, 2026 delivery-day range.
+### Phase 5 — Frontend scaffolding (COMPLETED)
+- [x] Initialize `frontend/` Next.js and Tailwind CSS, basic routing-free single-page structure.
+- [x] Implement `api/client.ts` wrapping the three backend endpoints.
+- [x] Build `DayPicker.tsx` constrained to the Jan 2 – Feb 1, 2026 delivery-day range.
+
+**Implementation note:** Scaffolded `frontend/` with Vite + React + TypeScript instead of Next.js — deviation from this checklist's literal wording, but consistent with section 2.1/2.2's own framing ("no auth, no routing complexity," `frontend/Dockerfile` note "node build stage -> static serve (**or vite dev server for simplicity**)") and with `config.py`'s existing `FRONTEND_ORIGIN` default of `http://localhost:5173`, which is Vite's default dev port, not Next's 3000. Next.js's SSR/routing/app-router machinery has no job to do in a single-view, no-auth analytical tool, so Vite was chosen as the closer fit; flagging the deviation here rather than silently diverging from the written plan.
+
+Tailwind CSS v4 wired in via the `@tailwindcss/vite` plugin (no separate `postcss.config`/`tailwind.config` needed in v4) — added to `vite.config.ts` and imported with `@import "tailwindcss";` in `src/index.css`, which also replaces Vite's default boilerplate styles (the fixed-width `#root`, custom fonts, etc.) with a plain reset.
+
+`src/api/client.ts` defines typed interfaces (`DaySummary`, `DaySeries`, `SeriesPeriod`, `ErrorMetrics`, `MetricsResponse`) mirroring the three backend endpoints' actual JSON shapes (confirmed against the live Phase 4 routers, not guessed), and three thin `fetch` wrappers: `getDays()`, `getDaySeries(date)`, `getMetrics(from?, to?)`. The API base URL is read from `VITE_API_BASE_URL` (defaults to `http://localhost:8000`), configured via a new `frontend/.env.example`.
+
+`src/components/DayPicker.tsx` renders a `<select>` populated from `/api/days`, restricted to exactly the days that endpoint returns (which is already the server-side-enforced Jan 2 – Feb 1, 2026 window — the picker never needs its own date-range logic), and flags any day missing complete actuals or any forecast as "(partial data)" in the option label.
+
+`src/pages/Dashboard.tsx` wires the day picker to `getDays`/`getDaySeries` with loading and error states for both calls, and renders the selected day's periods as a plain table (`start_time`/`forecast`/`actual`/`error`) — a deliberate placeholder standing in for the chart and metrics tiles that are Phase 6's job, used here only to verify the scaffolding's data flow end-to-end. `App.tsx` now renders `Dashboard` directly (no router, per spec).
+
+Verified: `npx tsc --noEmit` and `npm run build` both succeed with no errors. Ran the backend (`uvicorn app.main:app --port 8000`, against the already-ingested `backend/data/gridbricks.db` from Phase 2) and the frontend (`npm run dev`, port 5173) together locally; confirmed `GET /api/days` and `GET /api/days/{date}/series` return real data through the browser-facing dev server and that CORS (`FRONTEND_ORIGIN=http://localhost:5173` in `config.py`) allows the cross-origin request. Playwright's browser tool wasn't reachable in this sandbox to drive an actual page load, so the end-to-end check was via direct `curl` against both running servers plus the clean typecheck/build — a real-browser click-through is still worth doing manually (see testing notes below).
 
 ### Phase 6 — Frontend visualization
 - [ ] Build `ForecastActualChart.tsx`: half-hourly forecast vs actual line chart for the selected day (consult dataviz skill before writing chart code).
@@ -221,7 +233,7 @@ Three routers were added under `api/`, each a thin wrapper over the domain layer
 - [ ] Verify `docker-compose up` brings up a fully working app end-to-end locally from a clean checkout.
 
 ### Phase 8 — Deployment
-- [ ] Deploy backend (Heroku or equivalent), run ingestion against it, confirm live API responses.
+- [ ] Deploy backend (Heroku or equivalent free service), run ingestion against it, confirm live API responses.
 - [ ] Deploy frontend (Vercel), pointed at the deployed backend URL.
 - [ ] Verify both deployed URLs work in an incognito window with no auth barriers.
 
