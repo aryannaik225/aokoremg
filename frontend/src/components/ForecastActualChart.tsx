@@ -1,16 +1,13 @@
 import {
+  Area,
+  AreaChart,
   CartesianGrid,
-  Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
 import type { SeriesPeriod } from "../api/client";
-
-const FORECAST_COLOR = "#0A84FF";
-const ACTUAL_COLOR = "#FB7185";
 
 interface ForecastActualChartProps {
   periods: SeriesPeriod[];
@@ -33,19 +30,24 @@ function CustomTooltip({
   const forecast = payload.find((p) => p.dataKey === "forecast")?.value;
   const actual = payload.find((p) => p.dataKey === "actual")?.value;
   return (
-    <div className="glass-panel rounded-2xl px-4 py-3 text-xs">
-      <div className="font-medium tracking-tight text-white">{label}</div>
+    <div
+      className="rounded-2xl border px-4 py-3 text-xs shadow-lg"
+      style={{ backgroundColor: "var(--color-tooltip-bg)", borderColor: "var(--color-tooltip-border)" }}
+    >
+      <div className="font-medium tracking-tight" style={{ color: "var(--color-text-primary)" }}>
+        {label}
+      </div>
       <div className="mt-2 flex items-center gap-2">
-        <span className="inline-block h-2 w-2 rounded-full" style={{ background: FORECAST_COLOR }} />
-        <span className="text-zinc-400">Forecast</span>
-        <span className="ml-auto font-semibold tracking-tight text-white">
+        <span className="inline-block h-2 w-2 rounded-full" style={{ background: "var(--color-forecast)" }} />
+        <span style={{ color: "var(--color-text-secondary)" }}>Forecast</span>
+        <span className="ml-auto font-semibold tracking-tight" style={{ color: "var(--color-text-primary)" }}>
           {forecast ?? "—"} MW
         </span>
       </div>
       <div className="mt-1 flex items-center gap-2">
-        <span className="inline-block h-2 w-2 rounded-full" style={{ background: ACTUAL_COLOR }} />
-        <span className="text-zinc-400">Actual</span>
-        <span className="ml-auto font-semibold tracking-tight text-white">
+        <span className="inline-block h-2 w-2 rounded-full" style={{ background: "var(--color-actual)" }} />
+        <span style={{ color: "var(--color-text-secondary)" }}>Actual</span>
+        <span className="ml-auto font-semibold tracking-tight" style={{ color: "var(--color-text-primary)" }}>
           {actual ?? "—"} MW
         </span>
       </div>
@@ -63,55 +65,79 @@ export function ForecastActualChart({ periods }: ForecastActualChartProps) {
   return (
     <div>
       <div className="mb-4 flex items-center gap-5 text-xs">
-        <span className="flex items-center gap-2 rounded-full border border-white/5 bg-white/[0.03] px-3 py-1.5">
-          <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: FORECAST_COLOR, boxShadow: `0 0 6px ${FORECAST_COLOR}` }} />
-          <span className="text-zinc-400">Decision-time forecast</span>
+        <span
+          className="surface-panel flex items-center gap-2 rounded-full px-3 py-1.5"
+          style={{ color: "var(--color-text-secondary)" }}
+        >
+          <span
+            className="inline-block h-2.5 w-2.5 rounded-full"
+            style={{ background: "var(--color-forecast)", boxShadow: "0 0 6px var(--color-forecast)" }}
+          />
+          Decision-time forecast
         </span>
-        <span className="flex items-center gap-2 rounded-full border border-white/5 bg-white/[0.03] px-3 py-1.5">
-          <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: ACTUAL_COLOR, boxShadow: `0 0 6px ${ACTUAL_COLOR}` }} />
-          <span className="text-zinc-400">Actual generation</span>
+        <span
+          className="surface-panel flex items-center gap-2 rounded-full px-3 py-1.5"
+          style={{ color: "var(--color-text-secondary)" }}
+        >
+          <span
+            className="inline-block h-2.5 w-2.5 rounded-full"
+            style={{ background: "var(--color-actual)", boxShadow: "0 0 6px var(--color-actual)" }}
+          />
+          Actual generation
         </span>
       </div>
       <ResponsiveContainer width="100%" height={360}>
-        <LineChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-          <CartesianGrid stroke="rgba(255,255,255,0.05)" strokeWidth={1} vertical={false} />
+        <AreaChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+          <defs>
+            <linearGradient id="forecastFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--color-forecast-fill-from)" />
+              <stop offset="100%" stopColor="var(--color-forecast-fill-to)" />
+            </linearGradient>
+            <linearGradient id="actualFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--color-actual-fill-from)" />
+              <stop offset="100%" stopColor="var(--color-actual-fill-to)" />
+            </linearGradient>
+          </defs>
+          <CartesianGrid stroke="var(--color-grid-line)" strokeWidth={1} vertical={false} />
           <XAxis
             dataKey="time"
             interval={5}
-            tick={{ fill: "#71717a", fontSize: 11 }}
+            tick={{ fill: "var(--color-text-muted)", fontSize: 11 }}
             axisLine={false}
             tickLine={false}
           />
           <YAxis
-            tick={{ fill: "#71717a", fontSize: 11 }}
+            tick={{ fill: "var(--color-text-muted)", fontSize: 11 }}
             axisLine={false}
             tickLine={false}
             width={48}
           />
-          <Tooltip content={<CustomTooltip />} cursor={{ stroke: "rgba(255,255,255,0.12)", strokeWidth: 1 }} />
-          <Line
+          <Tooltip content={<CustomTooltip />} cursor={{ stroke: "var(--color-grid-line)", strokeWidth: 1 }} />
+          <Area
             type="monotone"
             dataKey="forecast"
-            stroke={FORECAST_COLOR}
-            strokeWidth={2.5}
+            stroke="var(--color-forecast)"
+            strokeWidth={2}
+            fill="url(#forecastFill)"
             dot={false}
-            activeDot={{ r: 5, stroke: "#0a0a0b", strokeWidth: 2, fill: FORECAST_COLOR }}
+            activeDot={{ r: 5, stroke: "var(--color-surface)", strokeWidth: 2, fill: "var(--color-forecast)" }}
             connectNulls
             isAnimationActive={false}
             className="glow-line-forecast"
           />
-          <Line
+          <Area
             type="monotone"
             dataKey="actual"
-            stroke={ACTUAL_COLOR}
-            strokeWidth={2.5}
+            stroke="var(--color-actual)"
+            strokeWidth={2}
+            fill="url(#actualFill)"
             dot={false}
-            activeDot={{ r: 5, stroke: "#0a0a0b", strokeWidth: 2, fill: ACTUAL_COLOR }}
+            activeDot={{ r: 5, stroke: "var(--color-surface)", strokeWidth: 2, fill: "var(--color-actual)" }}
             connectNulls
             isAnimationActive={false}
             className="glow-line-actual"
           />
-        </LineChart>
+        </AreaChart>
       </ResponsiveContainer>
     </div>
   );
