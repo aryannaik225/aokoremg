@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import {
   getDays,
@@ -13,6 +13,7 @@ import { ChartLegend, ForecastActualChart } from "../components/ForecastActualCh
 import { Hero } from "../components/Hero";
 import { HeroBackdrop } from "../components/HeroBackdrop";
 import { KeyInsights } from "../components/KeyInsights";
+import { LoadingScreen } from "../components/LoadingScreen";
 import { MetricsSummary } from "../components/MetricsSummary";
 import { Sidebar } from "../components/Sidebar";
 import { ThemeToggle } from "../components/ThemeToggle";
@@ -72,8 +73,12 @@ export function Dashboard({ theme, onToggleTheme }: DashboardProps) {
     return metrics.daily.find((d) => d.date === selectedDate) ?? null;
   }, [metrics, selectedDate]);
 
+  const initialLoading = days === null && !daysError;
+
   return (
     <div className="flex h-screen overflow-hidden transition-colors duration-300" style={{ backgroundColor: "var(--color-bg)" }}>
+      <AnimatePresence>{initialLoading && <LoadingScreen />}</AnimatePresence>
+
       <div className="fixed right-4 top-4 z-50 sm:right-6 sm:top-6">
         <ThemeToggle theme={theme} onToggle={onToggleTheme} />
       </div>
