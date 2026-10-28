@@ -1,0 +1,35 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      ELEXON_BASE_URL: https://data.elexon.co.uk/bmrs/api/v1
+      DECISION_CUTOFF_TIME: "11:00"
+      DELIVERY_WINDOW_START: "2026-01-02"
+      DELIVERY_WINDOW_END: "2026-02-01"
+      DB_PATH: /app/data/gridbricks.db
+      FRONTEND_ORIGIN: http://localhost:4173
+    volumes:
+      - sqlite-data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 120s
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: http://localhost:8000
+    ports:
+      - "4173:4173"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  sqlite-data:

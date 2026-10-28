@@ -236,11 +236,19 @@ Verified: `npx tsc --noEmit` and `npm run build` both succeed with no errors. Ra
 
 Verified: `npx tsc -b` and `npm run build` both pass with no errors. Started the backend (`uvicorn app.main:app --port 8000`, against the already-ingested DB) and the frontend dev server locally, confirmed `GET /api/health` and `GET /api/metrics` return real, non-degenerate numbers (aggregate MAE ≈ 2016 MW, nMAE ≈ 0.179 over the full window — same figures Phase 4 smoke-tested), and confirmed the dev server serves the new components with no bundler errors. As in Phase 5, Playwright's browser tool was not reachable in this sandbox (`ECONNREFUSED` on the CDP port, unrelated to the app itself), so a real-browser click-through confirming the chart renders correctly and updates on day-picker changes is still a manual step — see the testing notes below for exact steps.
 
-### Phase 7 — Docker
-- [ ] Write `backend/Dockerfile` (python:3.12-slim, install deps, run uvicorn, expose port).
-- [ ] Write `frontend/Dockerfile` (node build stage, serve static build).
-- [ ] Write root `docker-compose.yml` wiring backend + frontend + shared volume for the SQLite file.
-- [ ] Verify `docker-compose up` brings up a fully working app end-to-end locally from a clean checkout.
+### Phase 7 — Docker (COMPLETED)
+- [x] Write `backend/Dockerfile` (python:3.12-slim, install deps, run uvicorn, expose port).
+- [x] Write `frontend/Dockerfile` (node build stage, serve static build).
+- [x] Write root `docker-compose.yml` wiring backend + frontend + shared volume for the SQLite file.
+- [x] Verify `docker-compose up` brings up a fully working app end-to-end locally from a clean checkout.
+
+**Implementation note:** `backend/Dockerfile` is `python:3.12-slim` (not the local machine's 3.14, which lacks wheels for some pins per earlier phase notes — 3.12 has clean wheels for every pinned dependency), installs `requirements.txt`, then copies `app/` and a new `docker-entrypoint.sh`. That entrypoint checks whether `DB_PATH` already points at an existing SQLite file; if not (first run against a fresh volume), it runs `python -m app.ingestion.ingest` against the live Elexon API before starting `uvicorn app.main:app --host 0.0.0.0 --port 8000` — this is what makes `docker-compose up` produce a fully working app from a clean checkout without a separate manual ingestion step, while keeping later restarts fast (ingestion is skipped once the volume has data, and is still idempotent if run again). `backend/.dockerignore` excludes `data/` and `tests/` from the build context.
+
+`frontend/Dockerfile` is a two-stage build: `node:20-slim` runs `npm ci` + `npm run build` (Vite inlines `VITE_API_BASE_URL` at build time via a Docker `ARG`/`ENV`, defaulting to `http://localhost:8000`), then a second slim `node:20-slim` stage copies only the built `dist/` and serves it with the `serve` package on port 4173 — no dev server or nginx dependency needed. `VITE_API_BASE_URL` is deliberately set to `http://localhost:8000` (the backend's host-published port), not an internal Docker service name like `http://backend:8000`, because the bundle runs client-side in the user's browser, which can't resolve Docker-internal service names.
+
+Root `docker-compose.yml` wires both services: `backend` publishes `8000:8000`, gets its settings (`ELEXON_BASE_URL`, `DECISION_CUTOFF_TIME`, `DELIVERY_WINDOW_START/END`, `DB_PATH=/app/data/gridbricks.db`, `FRONTEND_ORIGIN=http://localhost:4173`) via `environment:` rather than a mounted `.env` file (simpler and avoids the `config.py` `env_file="../.env"` relative-path assumption, which only holds when uvicorn is launched from `backend/` on the host — env vars take priority over `env_file` in `pydantic-settings` regardless), and persists its SQLite file in a named volume `sqlite-data:/app/data` so the one-time ingestion survives container restarts. A healthcheck hits `/api/health` (via `urllib`, no extra dependency) with a 120s `start_period` to cover first-run ingestion latency against the live Elexon API. `frontend` publishes `4173:4173` and uses `depends_on.backend.condition: service_healthy` so it only starts once the backend (and its first-run ingestion, if any) is actually ready.
+
+**Verification caveat:** Docker is not installed in the sandbox this was built in, so `docker-compose up` itself could not be executed here — the Dockerfiles/compose file were written and statically reviewed (paths, env var propagation, cp312 wheel availability for every pinned dependency, entrypoint shell syntax) but not run end-to-end. This needs a real local run to confirm; see the testing notes in the final summary for exact steps.
 
 ### Phase 8 — Deployment
 - [ ] Deploy backend (Heroku or equivalent free service), run ingestion against it, confirm live API responses.
