@@ -1,4 +1,5 @@
 import {
+  Clover,
   Fan,
   LayoutDashboard,
 } from "lucide-react";
@@ -9,7 +10,7 @@ const NAV_ITEMS = [
 export function Sidebar() {
   return (
     <aside
-      className="hidden w-64 shrink-0 flex-col justify-between border-r px-4 py-6 transition-colors duration-300 lg:flex"
+      className="hidden h-screen w-64 shrink-0 flex-col justify-between overflow-hidden border-r px-4 py-6 transition-colors duration-300 lg:flex"
       style={{ backgroundColor: "var(--color-sidebar-bg)", borderColor: "var(--color-border)" }}
     >
       <div>
@@ -55,13 +56,19 @@ export function Sidebar() {
         className="rounded-2xl border p-4"
         style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-sidebar-active)" }}
       >
-        <div className="text-xs font-semibold" style={{ color: "var(--color-text-primary)" }}>
-          Clean Energy
+        <div className="flex items-center gap-3">
+          <Clover className="h-5 w-5 text-emerald-500" />
+          <div>
+            <div className="flex items-center gap-1.5 text-sm font-medium tracking-wide" style={{ color: "var(--color-text-primary)" }}>
+              
+              Clean Energy
+            </div>
+            <div className="text-sm font-medium tracking-wide" style={{ color: "var(--color-text-secondary)" }}>
+              Better Decisions
+            </div>
+          </div>
         </div>
-        <div className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
-          Better Decisions
-        </div>
-        <div className="mt-2 text-[11px]" style={{ color: "var(--color-text-muted)" }}>
+        <div className="mt-2 text-xs" style={{ color: "var(--color-text-muted)" }}>
           Jan 2 – Feb 1, 2026
         </div>
       </div>

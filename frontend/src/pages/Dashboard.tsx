@@ -73,14 +73,14 @@ export function Dashboard({ theme, onToggleTheme }: DashboardProps) {
   }, [metrics, selectedDate]);
 
   return (
-    <div className="flex min-h-screen transition-colors duration-300" style={{ backgroundColor: "var(--color-bg)" }}>
+    <div className="flex h-screen overflow-hidden transition-colors duration-300" style={{ backgroundColor: "var(--color-bg)" }}>
       <div className="fixed right-4 top-4 z-50 sm:right-6 sm:top-6">
         <ThemeToggle theme={theme} onToggle={onToggleTheme} />
       </div>
 
       <Sidebar />
 
-      <div className="relative min-w-0 flex-1">
+      <div className="relative h-screen min-w-0 flex-1 overflow-y-auto">
         <HeroBackdrop />
 
         <motion.div
